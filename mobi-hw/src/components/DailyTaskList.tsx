@@ -1,58 +1,170 @@
 import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-
-const dailyTasks = [
-  { id: "silver", name: "은화" },
-  { id: "grain", name: "곡물" },
-  { id: "black_hole", name: "검은 구멍 3회" },
-  { id: "barrier", name: "결계 2회" },
-  { id: "daily_dungeon", name: "요일 던전" },
-  { id: "part_time", name: "아르바이트" },
-  { id: "phantom_tower", name: "망령의 탑 5회" },
-  { id: "cash_shop", name: "캐쉬샵 (무료 물품, 데카 은화, 골드 보석함)" },
-];
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { PlusCircle, Pencil, Trash2 } from "lucide-react";
+import { useTaskStore } from "../store/taskStore";
+import type { Task } from "../store/taskStore";
 
 const DailyTaskList = () => {
-  const [tasks, setTasks] = useState<Record<string, boolean>>({});
+  const {
+    characters,
+    selectedCharacterId,
+    toggleDailyTask,
+    checkAndResetTasks,
+    addDailyTask,
+    editDailyTask,
+    deleteDailyTask,
+  } = useTaskStore();
 
-  // 로컬스토리지에서 상태 불러오기
+  const selectedCharacter = characters.find((c) => c.id === selectedCharacterId);
+  const dailyTaskItems = selectedCharacter?.dailyTaskItems || [];
+  const tasks = selectedCharacter?.dailyTasks || {};
+
+  const [newTaskName, setNewTaskName] = useState("");
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+
+  // 컴포넌트가 마운트될 때 초기화 체크
   useEffect(() => {
-    const storedTasks = JSON.parse(localStorage.getItem("dailyTasks") || "{}");
-    const lastReset = localStorage.getItem("dailyTasksResetTime");
-    const now = new Date();
+    checkAndResetTasks();
+  }, [checkAndResetTasks]);
 
-    // 자정에 초기화
-    if (!lastReset || new Date(lastReset).toDateString() !== now.toDateString()) {
-      localStorage.setItem("dailyTasksResetTime", now.toISOString());
-      setTasks({});
-    } else {
-      setTasks(storedTasks);
+  // 캐릭터가 선택되지 않은 경우 안내 메시지 표시
+  if (!selectedCharacterId) {
+    return (
+      <div className="p-4 text-center">
+        <p>캐릭터를 추가하여 숙제를 관리해보세요!</p>
+      </div>
+    );
+  }
+
+  // 작업 추가 핸들러
+  const handleAddTask = (e: FormEvent) => {
+    e.preventDefault();
+    if (newTaskName.trim()) {
+      addDailyTask(newTaskName);
+      setNewTaskName("");
+      setIsAdding(false);
     }
-  }, []);
+  };
 
-  // 상태 변경 시 로컬스토리지에 저장
-  useEffect(() => {
-    localStorage.setItem("dailyTasks", JSON.stringify(tasks));
-  }, [tasks]);
+  // 작업 수정 핸들러
+  const handleEditTask = (e: FormEvent) => {
+    e.preventDefault();
+    if (editingTask && newTaskName.trim()) {
+      editDailyTask(editingTask.id, newTaskName);
+      setNewTaskName("");
+      setEditingTask(null);
+    }
+  };
 
-  const toggleTask = (id: string) => {
-    setTasks((prev) => ({ ...prev, [id]: !prev[id] }));
+  // 작업 삭제 확인
+  const handleDeleteTask = (id: string) => {
+    if (window.confirm("이 작업을 삭제하시겠습니까?")) {
+      deleteDailyTask(id);
+    }
+  };
+
+  // 편집 모드 시작
+  const startEditing = (task: Task) => {
+    setEditingTask(task);
+    setNewTaskName(task.name);
+    setIsAdding(false);
+  };
+
+  // 작업 추가 모드 시작
+  const startAdding = () => {
+    setEditingTask(null);
+    setNewTaskName("");
+    setIsAdding(true);
+  };
+
+  // 편집/추가 취소
+  const cancelEditing = () => {
+    setEditingTask(null);
+    setNewTaskName("");
+    setIsAdding(false);
   };
 
   return (
-    <div>
+    <div className="p-4">
       <h2 className="text-xl font-bold mb-4">일일 숙제</h2>
-      <ul className="space-y-2">
-        {dailyTasks.map((task) => (
-          <li key={task.id} className="flex items-center space-x-2">
-            <Checkbox
-              checked={tasks[task.id] || false}
-              onCheckedChange={() => toggleTask(task.id)}
-            />
-            <span>{task.name}</span>
+
+      {/* 작업 목록 */}
+      <ul className="space-y-2 mb-4">
+        {dailyTaskItems.map((task) => (
+          <li key={task.id} className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                checked={tasks[task.id] || false}
+                onCheckedChange={() => toggleDailyTask(task.id)}
+              />
+              <span className={tasks[task.id] ? "line-through text-gray-500" : ""}>
+                {task.name}
+              </span>
+            </div>
+            <div className="flex space-x-1">
+              <button onClick={() => startEditing(task)} className="p-1 hover:text-blue-500">
+                <Pencil size={16} />
+              </button>
+              <button onClick={() => handleDeleteTask(task.id)} className="p-1 hover:text-red-500">
+                <Trash2 size={16} />
+              </button>
+            </div>
           </li>
         ))}
       </ul>
+
+      {/* 작업 추가 폼 */}
+      {isAdding && (
+        <form onSubmit={handleAddTask} className="flex items-center gap-2 mt-4">
+          <Input
+            value={newTaskName}
+            onChange={(e) => setNewTaskName(e.target.value)}
+            placeholder="새 작업 이름"
+            className="flex-1"
+            autoFocus
+          />
+          <Button type="submit" size="sm">
+            추가
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={cancelEditing}>
+            취소
+          </Button>
+        </form>
+      )}
+
+      {/* 작업 수정 폼 */}
+      {editingTask && (
+        <form onSubmit={handleEditTask} className="flex items-center gap-2 mt-4">
+          <Input
+            value={newTaskName}
+            onChange={(e) => setNewTaskName(e.target.value)}
+            placeholder="작업 이름 수정"
+            className="flex-1"
+            autoFocus
+          />
+          <Button type="submit" size="sm">
+            수정
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={cancelEditing}>
+            취소
+          </Button>
+        </form>
+      )}
+
+      {/* 추가 버튼 (추가/수정 중이 아닐 때만 표시) */}
+      {!isAdding && !editingTask && (
+        <Button
+          onClick={startAdding}
+          variant="outline"
+          className="w-full mt-4 flex items-center justify-center gap-2"
+        >
+          <PlusCircle size={18} /> 새 작업 추가
+        </Button>
+      )}
     </div>
   );
 };

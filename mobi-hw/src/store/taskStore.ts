@@ -1,0 +1,347 @@
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+// 작업 유형 정의
+export interface Task {
+  id: string;
+  name: string;
+}
+
+// 캐릭터 유형 정의
+export interface Character {
+  id: string;
+  name: string;
+  dailyTaskItems: Task[];
+  weeklyTaskItems: Task[];
+  dailyTasks: Record<string, boolean>;
+  weeklyTasks: Record<string, boolean>;
+}
+
+interface TasksState {
+  // 캐릭터 관련 상태
+  characters: Character[];
+  selectedCharacterId: string | null;
+
+  // 캐릭터 관리 함수
+  addCharacter: (name: string) => void;
+  selectCharacter: (id: string) => void;
+  editCharacter: (id: string, name: string) => void;
+  deleteCharacter: (id: string) => void;
+
+  // 현재 선택된 캐릭터의 작업 관리
+  toggleDailyTask: (taskId: string) => void;
+  toggleWeeklyTask: (taskId: string) => void;
+  resetDailyTasks: (characterId?: string) => void;
+  resetWeeklyTasks: (characterId?: string) => void;
+  checkAndResetTasks: () => void;
+
+  // 작업 관리 함수
+  addDailyTask: (name: string) => void;
+  addWeeklyTask: (name: string) => void;
+  editDailyTask: (id: string, name: string) => void;
+  editWeeklyTask: (id: string, name: string) => void;
+  deleteDailyTask: (id: string) => void;
+  deleteWeeklyTask: (id: string) => void;
+}
+
+// 기본 작업 목록
+const defaultDailyTasks: Task[] = [
+  { id: "black_hole", name: "검은 구멍 3회" },
+  { id: "barrier", name: "결계 2회" },
+  { id: "daily_dungeon", name: "요일 던전" },
+  { id: "part_time", name: "아르바이트" },
+  { id: "phantom_tower", name: "망령의 탑 5회" },
+  { id: "cash_shop", name: "캐쉬샵 (무료 물품, 데카 은화, 골드 보석함)" },
+];
+
+const defaultWeeklyTasks: Task[] = [
+  { id: "glas_gibnen", name: "글라스 기브넨" },
+  { id: "weekly_boss", name: "주간 보스 (페리, 크라브바흐, 크라마)" },
+  { id: "cash_shop_weekly", name: "캐쉬샵 (데카 곡물)" },
+  { id: "demon_badge", name: "마족의 증표(별의 인장) 교환" },
+  { id: "food_material", name: "음식 재료 교환" },
+];
+
+// UUID 생성 함수
+const generateId = () => Math.random().toString(36).substring(2, 11);
+
+// 기본 캐릭터 생성
+const createDefaultCharacter = (name: string): Character => ({
+  id: generateId(),
+  name,
+  dailyTaskItems: [...defaultDailyTasks],
+  weeklyTaskItems: [...defaultWeeklyTasks],
+  dailyTasks: {},
+  weeklyTasks: {},
+});
+
+export const useTaskStore = create<TasksState>()(
+  persist(
+    (set, get) => ({
+      // 초기 상태
+      characters: [],
+      selectedCharacterId: null,
+
+      // 캐릭터 관리
+      addCharacter: (name: string) =>
+        set((state) => {
+          const newCharacter = createDefaultCharacter(name);
+          const characters = [...state.characters, newCharacter];
+          return {
+            characters,
+            // 첫 캐릭터면 자동 선택
+            selectedCharacterId:
+              state.selectedCharacterId === null ? newCharacter.id : state.selectedCharacterId,
+          };
+        }),
+
+      selectCharacter: (id: string) => set({ selectedCharacterId: id }),
+
+      editCharacter: (id: string, name: string) =>
+        set((state) => ({
+          characters: state.characters.map((char) => (char.id === id ? { ...char, name } : char)),
+        })),
+
+      deleteCharacter: (id: string) =>
+        set((state) => {
+          const newCharacters = state.characters.filter((char) => char.id !== id);
+
+          // 선택된 캐릭터가 삭제되는 경우 다른 캐릭터 선택
+          let selectedId = state.selectedCharacterId;
+          if (id === selectedId) {
+            selectedId = newCharacters.length > 0 ? newCharacters[0].id : null;
+          }
+
+          return {
+            characters: newCharacters,
+            selectedCharacterId: selectedId,
+          };
+        }),
+
+      // 작업 토글 함수
+      toggleDailyTask: (taskId: string) =>
+        set((state) => {
+          if (!state.selectedCharacterId) return state;
+
+          return {
+            characters: state.characters.map((char) =>
+              char.id === state.selectedCharacterId
+                ? {
+                    ...char,
+                    dailyTasks: {
+                      ...char.dailyTasks,
+                      [taskId]: !char.dailyTasks[taskId],
+                    },
+                  }
+                : char
+            ),
+          };
+        }),
+
+      toggleWeeklyTask: (taskId: string) =>
+        set((state) => {
+          if (!state.selectedCharacterId) return state;
+
+          return {
+            characters: state.characters.map((char) =>
+              char.id === state.selectedCharacterId
+                ? {
+                    ...char,
+                    weeklyTasks: {
+                      ...char.weeklyTasks,
+                      [taskId]: !char.weeklyTasks[taskId],
+                    },
+                  }
+                : char
+            ),
+          };
+        }),
+
+      // 초기화 함수
+      resetDailyTasks: (characterId) =>
+        set((state) => {
+          const targetId = characterId || state.selectedCharacterId;
+          if (!targetId) return state;
+
+          return {
+            characters: state.characters.map((char) =>
+              char.id === targetId ? { ...char, dailyTasks: {} } : char
+            ),
+          };
+        }),
+
+      resetWeeklyTasks: (characterId) =>
+        set((state) => {
+          const targetId = characterId || state.selectedCharacterId;
+          if (!targetId) return state;
+
+          return {
+            characters: state.characters.map((char) =>
+              char.id === targetId ? { ...char, weeklyTasks: {} } : char
+            ),
+          };
+        }),
+
+      // 초기화 확인 함수
+      checkAndResetTasks: () => {
+        const now = new Date();
+        const characters = get().characters;
+
+        if (characters.length === 0) return;
+
+        // 일일 초기화 로직 (매일 오전 6시)
+        const lastDailyReset = localStorage.getItem("dailyTasksResetTime");
+        const dailyResetTime = new Date();
+        dailyResetTime.setHours(6, 0, 0, 0); // 오늘 새벽 6시
+
+        if (now < dailyResetTime) {
+          dailyResetTime.setDate(dailyResetTime.getDate() - 1); // 어제 새벽 6시
+        }
+
+        if (!lastDailyReset || new Date(lastDailyReset) < dailyResetTime) {
+          localStorage.setItem("dailyTasksResetTime", now.toISOString());
+          // 모든 캐릭터의 일일 숙제 초기화
+          characters.forEach((char) => {
+            get().resetDailyTasks(char.id);
+          });
+        }
+
+        // 주간 초기화 로직 (매주 월요일 새벽 6시)
+        const lastWeeklyReset = localStorage.getItem("weeklyTasksResetTime");
+        const weeklyResetTime = new Date();
+        weeklyResetTime.setDate(weeklyResetTime.getDate() - weeklyResetTime.getDay() + 1); // 이번주 월요일
+        weeklyResetTime.setHours(6, 0, 0, 0); // 월요일 새벽 6시
+
+        if (!lastWeeklyReset || new Date(lastWeeklyReset) < weeklyResetTime) {
+          localStorage.setItem("weeklyTasksResetTime", now.toISOString());
+          // 모든 캐릭터의 주간 숙제 초기화
+          characters.forEach((char) => {
+            get().resetWeeklyTasks(char.id);
+          });
+        }
+      },
+
+      // 작업 관리 함수
+      addDailyTask: (name: string) =>
+        set((state) => {
+          if (!state.selectedCharacterId) return state;
+
+          const newTask = { id: generateId(), name };
+          return {
+            characters: state.characters.map((char) =>
+              char.id === state.selectedCharacterId
+                ? { ...char, dailyTaskItems: [...char.dailyTaskItems, newTask] }
+                : char
+            ),
+          };
+        }),
+
+      addWeeklyTask: (name: string) =>
+        set((state) => {
+          if (!state.selectedCharacterId) return state;
+
+          const newTask = { id: generateId(), name };
+          return {
+            characters: state.characters.map((char) =>
+              char.id === state.selectedCharacterId
+                ? { ...char, weeklyTaskItems: [...char.weeklyTaskItems, newTask] }
+                : char
+            ),
+          };
+        }),
+
+      editDailyTask: (id: string, name: string) =>
+        set((state) => {
+          if (!state.selectedCharacterId) return state;
+
+          return {
+            characters: state.characters.map((char) =>
+              char.id === state.selectedCharacterId
+                ? {
+                    ...char,
+                    dailyTaskItems: char.dailyTaskItems.map((task) =>
+                      task.id === id ? { ...task, name } : task
+                    ),
+                  }
+                : char
+            ),
+          };
+        }),
+
+      editWeeklyTask: (id: string, name: string) =>
+        set((state) => {
+          if (!state.selectedCharacterId) return state;
+
+          return {
+            characters: state.characters.map((char) =>
+              char.id === state.selectedCharacterId
+                ? {
+                    ...char,
+                    weeklyTaskItems: char.weeklyTaskItems.map((task) =>
+                      task.id === id ? { ...task, name } : task
+                    ),
+                  }
+                : char
+            ),
+          };
+        }),
+
+      deleteDailyTask: (id: string) =>
+        set((state) => {
+          if (!state.selectedCharacterId) return state;
+
+          const selectedChar = state.characters.find(
+            (char) => char.id === state.selectedCharacterId
+          );
+          if (!selectedChar) return state;
+
+          const newDailyTasks = { ...selectedChar.dailyTasks };
+          delete newDailyTasks[id];
+
+          return {
+            characters: state.characters.map((char) =>
+              char.id === state.selectedCharacterId
+                ? {
+                    ...char,
+                    dailyTaskItems: char.dailyTaskItems.filter((task) => task.id !== id),
+                    dailyTasks: newDailyTasks,
+                  }
+                : char
+            ),
+          };
+        }),
+
+      deleteWeeklyTask: (id: string) =>
+        set((state) => {
+          if (!state.selectedCharacterId) return state;
+
+          const selectedChar = state.characters.find(
+            (char) => char.id === state.selectedCharacterId
+          );
+          if (!selectedChar) return state;
+
+          const newWeeklyTasks = { ...selectedChar.weeklyTasks };
+          delete newWeeklyTasks[id];
+
+          return {
+            characters: state.characters.map((char) =>
+              char.id === state.selectedCharacterId
+                ? {
+                    ...char,
+                    weeklyTaskItems: char.weeklyTaskItems.filter((task) => task.id !== id),
+                    weeklyTasks: newWeeklyTasks,
+                  }
+                : char
+            ),
+          };
+        }),
+    }),
+    {
+      name: "mobi-tasks-storage",
+      partialize: (state) => ({
+        characters: state.characters,
+        selectedCharacterId: state.selectedCharacterId,
+      }),
+    }
+  )
+);
