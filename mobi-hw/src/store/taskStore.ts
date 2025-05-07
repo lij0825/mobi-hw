@@ -62,7 +62,6 @@ const defaultDailyTasks: Task[] = [
   { id: "cash_shop_free", name: "무료 물품", category: DAILY_CATEGORIES[1], icon: "shop" }, // "캐쉬 샵"
   { id: "cash_shop_deca", name: "데카 은화", category: DAILY_CATEGORIES[1], icon: "shop" }, // "캐쉬 샵"
   { id: "cash_shop_gold", name: "골드 보석함", category: DAILY_CATEGORIES[1], icon: "shop" }, // "캐쉬 샵"
-  { id: "daily_gold", name: "골드 획득", category: DAILY_CATEGORIES[3], icon: "misc" }, // "기타"
 ];
 
 const defaultWeeklyTasks: Task[] = [
@@ -76,7 +75,6 @@ const defaultWeeklyTasks: Task[] = [
   { id: "cash_shop_weekly", name: "데카 곡물", category: WEEKLY_CATEGORIES[3], icon: "shop" }, // "캐쉬 샵"
   { id: "demon_badge", name: "마족의 증표", category: WEEKLY_CATEGORIES[4], icon: "exchange" }, // "교환"
   { id: "food_material", name: "음식 재료", category: WEEKLY_CATEGORIES[4], icon: "exchange" }, // "교환"
-  { id: "weekly_mission", name: "주간 미션", category: WEEKLY_CATEGORIES[5], icon: "misc" }, // "기타"
 ];
 
 // UUID 생성 함수
