@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://lij0825.github.io/mobihw",
+  "homepage": "https://lij0825.github.io/mobi-hw",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
