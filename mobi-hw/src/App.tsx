@@ -1,7 +1,8 @@
 import TaskTabs from "./components/TaskTabs";
 import { Card } from "@/components/ui/card";
 import { ThemeProvider } from "@/components/ui/theme-provider";
-import { BarrierAlarm } from "@/components/BarrierAlarm"; // 결계 알람 컴포넌트 import 추가
+import { BarrierAlarm } from "@/components/BarrierAlarm";
+import { ResetStorageButton } from "./components/ResetStorageButton"; // 이 줄 추가
 
 function App() {
   return (
@@ -19,6 +20,11 @@ function App() {
           <Card className="w-full max-w-lg border shadow-lg overflow-hidden">
             <TaskTabs />
           </Card>
+
+          {/* 이 부분 추가 */}
+          <div className="w-full max-w-lg mt-4 flex justify-end">
+            <ResetStorageButton />
+          </div>
         </div>
 
         <footer className="text-center text-base text-muted-foreground mt-8 mb-4">
