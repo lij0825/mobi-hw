@@ -7,15 +7,17 @@ import {
   DEFAULT_WEEKLY_CATEGORY,
 } from "@/lib/constants";
 
-// 작업 유형 정의
+// 작업 유형 정의 확장
 export interface Task {
   id: string;
   name: string;
   category?: string;
   icon?: string;
+  count?: number; // 필요한 총 반복 횟수
+  currentCount?: number; // 현재 완료한 횟수
 }
 
-// 캐릭터 유형 정의
+// 캐릭터 유형 정의 - dailyTaskCounts와 weeklyTaskCounts 추가
 export interface Character {
   id: string;
   name: string;
@@ -23,6 +25,8 @@ export interface Character {
   weeklyTaskItems: Task[];
   dailyTasks: Record<string, boolean>;
   weeklyTasks: Record<string, boolean>;
+  dailyTaskCounts: Record<string, number>; // 작업별 카운트 저장
+  weeklyTaskCounts: Record<string, number>; // 작업별 카운트 저장
 }
 
 interface TasksState {
@@ -44,20 +48,43 @@ interface TasksState {
   checkAndResetTasks: () => void;
 
   // 작업 관리 함수
-  addDailyTask: (name: string, category?: string) => void;
+  addDailyTask: (name: string, category?: string, count?: number) => void;
   addWeeklyTask: (name: string, category?: string) => void;
   editDailyTask: (id: string, name: string, category?: string) => void;
   editWeeklyTask: (id: string, name: string) => void;
   deleteDailyTask: (id: string) => void;
   deleteWeeklyTask: (id: string) => void;
+
+  // 카운트 관련 함수 추가
+  incrementTaskCount: (taskId: string, isWeekly?: boolean) => void;
+  decrementTaskCount: (taskId: string, isWeekly?: boolean) => void;
+  resetTaskCount: (taskId: string, isWeekly?: boolean) => void;
 }
 
-// 기본 작업 목록
+// 기본 작업 목록 수정 - count 필드 추가
 const defaultDailyTasks: Task[] = [
-  { id: "black_hole", name: "검은 구멍 3회", category: DAILY_CATEGORIES[0], icon: "dungeon" }, // "던전"
-  { id: "barrier", name: "결계 2회", category: DAILY_CATEGORIES[0], icon: "dungeon" }, // "던전"
-  { id: "daily_dungeon", name: "요일 던전", category: DAILY_CATEGORIES[0], icon: "dungeon" }, // "던전"
-  { id: "phantom_tower", name: "망령의 탑 5회", category: DAILY_CATEGORIES[0], icon: "dungeon" }, // "던전"
+  {
+    id: "black_hole",
+    name: "검은 구멍",
+    category: DAILY_CATEGORIES[0],
+    icon: "dungeon",
+    count: 3, // 필요한 반복 횟수
+  },
+  {
+    id: "barrier",
+    name: "결계",
+    category: DAILY_CATEGORIES[0],
+    icon: "dungeon",
+    count: 2, // 필요한 반복 횟수
+  },
+  { id: "daily_dungeon", name: "요일 던전", category: DAILY_CATEGORIES[0], icon: "dungeon" },
+  {
+    id: "phantom_tower",
+    name: "망령의 탑",
+    category: DAILY_CATEGORIES[0],
+    icon: "dungeon",
+    count: 5,
+  },
   { id: "part_time", name: "아르바이트", category: DAILY_CATEGORIES[2], icon: "gold" }, // "일반"
   { id: "cash_shop_free", name: "무료 물품", category: DAILY_CATEGORIES[1], icon: "shop" }, // "캐쉬 샵"
   { id: "cash_shop_deca", name: "데카 은화", category: DAILY_CATEGORIES[1], icon: "shop" }, // "캐쉬 샵"
@@ -80,15 +107,31 @@ const defaultWeeklyTasks: Task[] = [
 // UUID 생성 함수
 const generateId = () => Math.random().toString(36).substring(2, 11);
 
-// 기본 캐릭터 생성
-const createDefaultCharacter = (name: string): Character => ({
-  id: generateId(),
-  name,
-  dailyTaskItems: [...defaultDailyTasks],
-  weeklyTaskItems: [...defaultWeeklyTasks],
-  dailyTasks: {},
-  weeklyTasks: {},
-});
+// 기본 캐릭터 생성 함수 수정
+const createDefaultCharacter = (name: string): Character => {
+  // 기본 task들의 초기 카운트 값 생성
+  const initialDailyCounts: Record<string, number> = {};
+  const initialWeeklyCounts: Record<string, number> = {};
+
+  defaultDailyTasks.forEach((task) => {
+    if (task.count) initialDailyCounts[task.id] = 0;
+  });
+
+  defaultWeeklyTasks.forEach((task) => {
+    if (task.count) initialWeeklyCounts[task.id] = 0;
+  });
+
+  return {
+    id: generateId(),
+    name,
+    dailyTaskItems: [...defaultDailyTasks],
+    weeklyTaskItems: [...defaultWeeklyTasks],
+    dailyTasks: {},
+    weeklyTasks: {},
+    dailyTaskCounts: initialDailyCounts,
+    weeklyTaskCounts: initialWeeklyCounts,
+  };
+};
 
 export const useTaskStore = create<TasksState>()(
   persist(
@@ -172,7 +215,7 @@ export const useTaskStore = create<TasksState>()(
           };
         }),
 
-      // 초기화 함수
+      // 초기화 함수 수정 - 카운트도 리셋
       resetDailyTasks: (characterId) =>
         set((state) => {
           const targetId = characterId || state.selectedCharacterId;
@@ -180,7 +223,7 @@ export const useTaskStore = create<TasksState>()(
 
           return {
             characters: state.characters.map((char) =>
-              char.id === targetId ? { ...char, dailyTasks: {} } : char
+              char.id === targetId ? { ...char, dailyTasks: {}, dailyTaskCounts: {} } : char
             ),
           };
         }),
@@ -192,7 +235,7 @@ export const useTaskStore = create<TasksState>()(
 
           return {
             characters: state.characters.map((char) =>
-              char.id === targetId ? { ...char, weeklyTasks: {} } : char
+              char.id === targetId ? { ...char, weeklyTasks: {}, weeklyTaskCounts: {} } : char
             ),
           };
         }),
@@ -237,20 +280,28 @@ export const useTaskStore = create<TasksState>()(
       },
 
       // 작업 관리 함수
-      addDailyTask: (name: string, category?: string) =>
+      addDailyTask: (name: string, category?: string, count?: number) =>
         set((state) => {
           if (!state.selectedCharacterId) return state;
 
           const newTask = {
             id: generateId(),
             name,
-            category: category || DEFAULT_DAILY_CATEGORY, // 기본 카테고리 사용
+            category: category || DEFAULT_DAILY_CATEGORY,
+            count, // count 추가
           };
 
           return {
             characters: state.characters.map((char) =>
               char.id === state.selectedCharacterId
-                ? { ...char, dailyTaskItems: [...char.dailyTaskItems, newTask] }
+                ? {
+                    ...char,
+                    dailyTaskItems: [...char.dailyTaskItems, newTask],
+                    dailyTaskCounts: {
+                      ...char.dailyTaskCounts,
+                      [newTask.id]: 0, // 카운트 초기화
+                    },
+                  }
                 : char
             ),
           };
@@ -355,6 +406,121 @@ export const useTaskStore = create<TasksState>()(
                     ...char,
                     weeklyTaskItems: char.weeklyTaskItems.filter((task) => task.id !== id),
                     weeklyTasks: newWeeklyTasks,
+                  }
+                : char
+            ),
+          };
+        }),
+
+      // 작업 카운트 증가
+      incrementTaskCount: (taskId: string, isWeekly = false) =>
+        set((state) => {
+          if (!state.selectedCharacterId) return state;
+          const selectedChar = state.characters.find(
+            (char) => char.id === state.selectedCharacterId
+          );
+          if (!selectedChar) return state;
+
+          const taskList = isWeekly ? selectedChar.weeklyTaskItems : selectedChar.dailyTaskItems;
+          const taskItem = taskList.find((task) => task.id === taskId);
+          const maxCount = taskItem?.count || 1;
+
+          const countField = isWeekly ? "weeklyTaskCounts" : "dailyTaskCounts";
+          const currentCount = selectedChar[countField][taskId] || 0;
+
+          // 최대 카운트에 도달했는지 확인
+          if (currentCount >= maxCount) return state;
+
+          // 카운트 증가
+          const newCount = currentCount + 1;
+
+          // 최대 카운트에 도달하면 완료로 표시
+          const tasksField = isWeekly ? "weeklyTasks" : "dailyTasks";
+          const isCompleted = newCount >= maxCount;
+
+          return {
+            characters: state.characters.map((char) =>
+              char.id === state.selectedCharacterId
+                ? {
+                    ...char,
+                    [countField]: {
+                      ...char[countField],
+                      [taskId]: newCount,
+                    },
+                    [tasksField]: {
+                      ...char[tasksField],
+                      [taskId]: isCompleted,
+                    },
+                  }
+                : char
+            ),
+          };
+        }),
+
+      // 작업 카운트 감소
+      decrementTaskCount: (taskId: string, isWeekly = false) =>
+        set((state) => {
+          if (!state.selectedCharacterId) return state;
+          const selectedChar = state.characters.find(
+            (char) => char.id === state.selectedCharacterId
+          );
+          if (!selectedChar) return state;
+
+          const countField = isWeekly ? "weeklyTaskCounts" : "dailyTaskCounts";
+          const currentCount = selectedChar[countField][taskId] || 0;
+
+          // 0보다 작아질 수 없음
+          if (currentCount <= 0) return state;
+
+          // 카운트 감소
+          const newCount = currentCount - 1;
+
+          // 완료 상태 업데이트
+          const taskList = isWeekly ? selectedChar.weeklyTaskItems : selectedChar.dailyTaskItems;
+          const taskItem = taskList.find((task) => task.id === taskId);
+          const maxCount = taskItem?.count || 1;
+          const tasksField = isWeekly ? "weeklyTasks" : "dailyTasks";
+
+          return {
+            characters: state.characters.map((char) =>
+              char.id === state.selectedCharacterId
+                ? {
+                    ...char,
+                    [countField]: {
+                      ...char[countField],
+                      [taskId]: newCount,
+                    },
+                    [tasksField]: {
+                      ...char[tasksField],
+                      [taskId]: newCount >= maxCount,
+                    },
+                  }
+                : char
+            ),
+          };
+        }),
+
+      // 작업 카운트 리셋
+      resetTaskCount: (taskId: string, isWeekly = false) =>
+        set((state) => {
+          if (!state.selectedCharacterId) return state;
+
+          const countField = isWeekly ? "weeklyTaskCounts" : "dailyTaskCounts";
+          const tasksField = isWeekly ? "weeklyTasks" : "dailyTasks";
+
+          return {
+            characters: state.characters.map((char) =>
+              char.id === state.selectedCharacterId
+                ? {
+                    ...char,
+                    [countField]: {
+                      ...char[countField],
+                      [taskId]: 0,
+                    },
+                    [tasksField]: {
+                      ...char[tasksField],
+                      [taskId]: false,
+                    },
                   }
                 : char
             ),

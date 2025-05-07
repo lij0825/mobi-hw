@@ -14,6 +14,8 @@ const WeeklyTaskList = () => {
     characters,
     selectedCharacterId,
     toggleWeeklyTask,
+    incrementTaskCount, // 추가 필요
+    decrementTaskCount, // 추가 필요
     checkAndResetTasks,
     addWeeklyTask,
     editWeeklyTask,
@@ -23,6 +25,7 @@ const WeeklyTaskList = () => {
   const selectedCharacter = characters.find((c) => c.id === selectedCharacterId);
   const weeklyTaskItems = selectedCharacter?.weeklyTaskItems || [];
   const tasks = selectedCharacter?.weeklyTasks || {};
+  const taskCounts = selectedCharacter?.weeklyTaskCounts || {}; // 추가 필요
 
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -95,7 +98,15 @@ const WeeklyTaskList = () => {
   }
 
   const totalTasks = weeklyTaskItems.length;
-  const completedTasks = weeklyTaskItems.filter((task) => tasks[task.id]).length;
+  const completedTasks = weeklyTaskItems.filter((task) => {
+    // 카운트가 있는 작업은 현재 카운트가 최대 카운트 이상일 때 완료로 처리
+    if (task.count) {
+      const currentCount = taskCounts[task.id] || 0;
+      return currentCount >= task.count;
+    }
+    // 카운트가 없는 일반 작업은 체크 상태로 판단
+    return tasks[task.id];
+  }).length;
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   // 작업 추가 핸들러
@@ -156,9 +167,13 @@ const WeeklyTaskList = () => {
             expanded={expandedCategories[category] || false}
             onToggle={() => toggleCategory(category)}
             onTaskToggle={toggleWeeklyTask}
+            onTaskIncrement={(id) => incrementTaskCount(id, true)} // 추가 필요
+            onTaskDecrement={(id) => decrementTaskCount(id, true)} // 추가 필요
             onTaskEdit={startEditing}
             onTaskDelete={handleDeleteTask}
             tasksStatus={tasks}
+            taskCounts={taskCounts} // 추가 필요
+            isWeekly={true} // 추가 필요
           />
         ))}
 

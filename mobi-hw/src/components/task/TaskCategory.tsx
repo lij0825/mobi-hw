@@ -1,5 +1,6 @@
 import { ChevronsUpDown } from "lucide-react";
 import { TaskItem } from "./TaskItem";
+import { CounterTaskItem } from "./CounterTaskItem";
 import type { Task } from "@/store/taskStore";
 import { getCategoryIcon } from "@/lib/utils";
 
@@ -9,9 +10,13 @@ interface TaskCategoryProps {
   expanded: boolean;
   onToggle: () => void;
   onTaskToggle: (id: string) => void;
+  onTaskIncrement?: (id: string) => void;
+  onTaskDecrement?: (id: string) => void;
   onTaskEdit: (task: Task) => void;
   onTaskDelete: (id: string) => void;
   tasksStatus: Record<string, boolean>;
+  taskCounts?: Record<string, number>;
+  isWeekly?: boolean;
 }
 
 export const TaskCategory = ({
@@ -20,9 +25,12 @@ export const TaskCategory = ({
   expanded,
   onToggle,
   onTaskToggle,
+  onTaskIncrement,
+  onTaskDecrement,
   onTaskEdit,
   onTaskDelete,
   tasksStatus,
+  taskCounts = {},
 }: TaskCategoryProps) => {
   return (
     <div className="mb-6">
@@ -33,22 +41,36 @@ export const TaskCategory = ({
         </div>
         <ChevronsUpDown
           size={18}
-          className={`transition-transform ${expanded ? "transform rotate-180" : ""}`}
+          className={`transition-transform duration-300 ${expanded ? "transform rotate-180" : ""}`}
         />
       </div>
 
       {expanded && (
         <ul className="space-y-3 mb-3 pl-2">
-          {tasks.map((task) => (
-            <TaskItem
-              key={task.id}
-              task={task}
-              checked={tasksStatus[task.id] || false}
-              onToggle={onTaskToggle}
-              onEdit={onTaskEdit}
-              onDelete={onTaskDelete}
-            />
-          ))}
+          {tasks.map((task) =>
+            // 카운트가 있는 작업인지 확인하고 적절한 컴포넌트 렌더링
+            task.count ? (
+              <CounterTaskItem
+                key={task.id}
+                task={task}
+                currentCount={taskCounts[task.id] || 0}
+                maxCount={task.count}
+                onIncrement={onTaskIncrement ? (id) => onTaskIncrement(id) : () => {}}
+                onDecrement={onTaskDecrement ? (id) => onTaskDecrement(id) : () => {}}
+                onEdit={onTaskEdit}
+                onDelete={onTaskDelete}
+              />
+            ) : (
+              <TaskItem
+                key={task.id}
+                task={task}
+                checked={tasksStatus[task.id] || false}
+                onToggle={onTaskToggle}
+                onEdit={onTaskEdit}
+                onDelete={onTaskDelete}
+              />
+            )
+          )}
         </ul>
       )}
     </div>
