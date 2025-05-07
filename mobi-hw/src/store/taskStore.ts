@@ -59,6 +59,10 @@ interface TasksState {
   incrementTaskCount: (taskId: string, isWeekly?: boolean) => void;
   decrementTaskCount: (taskId: string, isWeekly?: boolean) => void;
   resetTaskCount: (taskId: string, isWeekly?: boolean) => void;
+
+  // Barrier Alarm 관련 상태 및 함수
+  barrierAlarmEnabled: boolean;
+  toggleBarrierAlarm: () => void;
 }
 
 // 기본 작업 목록 수정 - count 필드 추가
@@ -139,6 +143,7 @@ export const useTaskStore = create<TasksState>()(
       // 초기 상태
       characters: [],
       selectedCharacterId: null,
+      barrierAlarmEnabled: false,
 
       // 캐릭터 관리
       addCharacter: (name: string) =>
@@ -526,12 +531,17 @@ export const useTaskStore = create<TasksState>()(
             ),
           };
         }),
+
+      // Barrier Alarm 토글 함수
+      toggleBarrierAlarm: () =>
+        set((state) => ({ barrierAlarmEnabled: !state.barrierAlarmEnabled })),
     }),
     {
       name: "mobi-tasks-storage",
       partialize: (state) => ({
         characters: state.characters,
         selectedCharacterId: state.selectedCharacterId,
+        barrierAlarmEnabled: state.barrierAlarmEnabled,
       }),
     }
   )

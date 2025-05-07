@@ -101,3 +101,52 @@ export function calculateWeeklyResetTime(): { timeString: string; nextReset: Dat
     nextReset,
   };
 }
+
+// 결계 생성 시간 (0, 3, 6, 9, 12, 15, 18, 21시)
+export const BARRIER_HOURS = [0, 3, 6, 9, 12, 15, 18, 21];
+
+// 다음 결계 시간 계산
+export function calculateBarrierTime(): {
+  nextBarrierTime: Date;
+  timeUntilNextBarrier: string;
+  isBarrierActive: boolean;
+  currentBarrierHour: number | null;
+} {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+
+  // 현재 시각이 결계 시간인지 확인 (시간이 맞고, 15분 이내인 경우)
+  const isBarrierHour = BARRIER_HOURS.includes(currentHour);
+  const isBarrierActive = isBarrierHour && currentMinute < 15;
+  const currentBarrierHour = isBarrierActive ? currentHour : null;
+
+  // 다음 결계 시간 찾기
+  let nextBarrierHour = BARRIER_HOURS.find((hour) => hour > currentHour);
+
+  // 다음 결계 시간 계산
+  const nextBarrierTime = new Date();
+
+  // 오늘 남은 시간 중에 결계가 없으면 내일 첫 결계(0시)로 설정
+  if (nextBarrierHour === undefined) {
+    nextBarrierHour = 0;
+    nextBarrierTime.setDate(nextBarrierTime.getDate() + 1);
+  }
+
+  nextBarrierTime.setHours(nextBarrierHour, 0, 0, 0);
+
+  // 다음 결계까지 남은 시간 계산
+  const diffMs = nextBarrierTime.getTime() - now.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  const diffSeconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+  const timeUntilNextBarrier = `${diffHours}시간 ${diffMinutes}분 ${diffSeconds}초`;
+
+  return {
+    nextBarrierTime,
+    timeUntilNextBarrier,
+    isBarrierActive,
+    currentBarrierHour,
+  };
+}

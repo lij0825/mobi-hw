@@ -1,6 +1,7 @@
 import TaskTabs from "./components/TaskTabs";
 import { Card } from "@/components/ui/card";
 import { ThemeProvider } from "@/components/ui/theme-provider";
+import { BarrierAlarm } from "@/components/BarrierAlarm"; // 결계 알람 컴포넌트 import 추가
 
 function App() {
   return (
@@ -11,14 +12,17 @@ function App() {
           <h1 className="text-4xl font-bold text-center text-primary">모비노기 숙제</h1>
         </header>
 
-        <div className="flex-grow flex items-center justify-center w-full">
+        <div className="flex-grow flex flex-col items-center justify-center w-full">
+          <div className="w-full max-w-lg mb-4">
+            <BarrierAlarm />
+          </div>
           <Card className="w-full max-w-lg border shadow-lg overflow-hidden">
             <TaskTabs />
           </Card>
         </div>
 
         <footer className="text-center text-base text-muted-foreground mt-8 mb-4">
-          © 모비노기 숙제 관리
+          © 월요일 좋아
         </footer>
       </div>
     </ThemeProvider>
