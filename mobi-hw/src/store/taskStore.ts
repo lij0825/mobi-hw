@@ -60,6 +60,7 @@ const defaultWeeklyTasks: Task[] = [
   { id: "cash_shop_weekly", name: "캐쉬샵 (데카 곡물)" },
   { id: "demon_badge", name: "마족의 증표(별의 인장) 교환" },
   { id: "food_material", name: "음식 재료 교환" },
+  { id: "abyss", name: "어비스" },
 ];
 
 // UUID 생성 함수

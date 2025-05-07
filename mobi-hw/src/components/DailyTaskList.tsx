@@ -116,16 +116,22 @@ const DailyTaskList = () => {
               key={task.id}
               className="flex items-center justify-between p-4 rounded-md bg-card hover:bg-muted"
             >
-              <div className="flex items-center space-x-3">
+              {/* 클릭 가능한 영역을 전체로 확장 */}
+              <div
+                className="flex items-center space-x-3 flex-1 cursor-pointer"
+                onClick={() => toggleDailyTask(task.id)}
+              >
                 <Checkbox
                   id={`daily-${task.id}`}
                   checked={tasks[task.id] || false}
                   onCheckedChange={() => toggleDailyTask(task.id)}
                   className="h-6 w-6"
+                  // 이벤트 버블링 방지
+                  onClick={(e) => e.stopPropagation()}
                 />
                 <label
                   htmlFor={`daily-${task.id}`}
-                  className={`text-xl cursor-pointer ${
+                  className={`text-xl ${
                     tasks[task.id] ? "line-through text-muted-foreground" : ""
                   }`}
                 >
@@ -136,7 +142,10 @@ const DailyTaskList = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => startEditing(task)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // 이벤트 전파 방지
+                    startEditing(task);
+                  }}
                   className="h-10 w-10 p-0"
                 >
                   <Pencil size={20} />
@@ -144,7 +153,10 @@ const DailyTaskList = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleDeleteTask(task.id)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // 이벤트 전파 방지
+                    handleDeleteTask(task.id);
+                  }}
                   className="h-10 w-10 p-0 hover:text-destructive"
                 >
                   <Trash2 size={20} />
