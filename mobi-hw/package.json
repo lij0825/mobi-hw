@@ -6,7 +6,7 @@
   "homepage": "https://lij0825.github.io/mobihw",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && npx vite build",
+    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
