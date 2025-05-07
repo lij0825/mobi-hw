@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Pencil, Trash2, AlertCircle } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, AlertCircle, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTaskStore } from "../store/taskStore";
 import type { Task } from "../store/taskStore";
@@ -26,10 +26,60 @@ const WeeklyTaskList = () => {
   const [newTaskName, setNewTaskName] = useState("");
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [timeUntilReset, setTimeUntilReset] = useState("");
 
   // 컴포넌트가 마운트될 때 초기화 체크
   useEffect(() => {
     checkAndResetTasks();
+
+    // 초기화 시간 계산 함수
+    const calculateTimeUntilReset = () => {
+      const now = new Date();
+      const nextMonday = new Date();
+
+      // 현재 요일 가져오기 (0: 일요일, 1: 월요일, ...)
+      const currentDay = now.getDay();
+
+      // 다음 월요일까지 남은 일수 계산 (1은 월요일)
+      let daysUntilMonday;
+      if (currentDay === 1) {
+        // 오늘이 월요일인 경우
+        // 현재 시간이 오늘 새벽 6시를 지났는지 확인
+        const todayReset = new Date();
+        todayReset.setHours(6, 0, 0, 0);
+
+        if (now >= todayReset) {
+          // 이미 오늘 초기화 시간을 지났다면, 다음 주 월요일
+          daysUntilMonday = 7;
+        } else {
+          // 아직 오늘 초기화 시간을 지나지 않았다면, 오늘
+          daysUntilMonday = 0;
+        }
+      } else {
+        // 월요일이 아닌 경우, 다음 월요일까지 계산
+        daysUntilMonday = (1 + 7 - currentDay) % 7;
+      }
+
+      // 다음 초기화 날짜 설정
+      nextMonday.setDate(now.getDate() + daysUntilMonday);
+      nextMonday.setHours(6, 0, 0, 0); // 새벽 6시로 설정
+
+      const diff = nextMonday.getTime() - now.getTime();
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      setTimeUntilReset(`${days}일 ${hours}시간 ${minutes}분 ${seconds}초`);
+    };
+
+    // 초기 계산
+    calculateTimeUntilReset();
+
+    // 1초마다 업데이트
+    const interval = setInterval(calculateTimeUntilReset, 1000);
+
+    return () => clearInterval(interval);
   }, [checkAndResetTasks]);
 
   // 캐릭터가 선택되지 않은 경우 안내 메시지 표시
@@ -97,11 +147,17 @@ const WeeklyTaskList = () => {
   return (
     <Card className="border-0 shadow-none">
       <CardContent className="p-4">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-2">
           <h2 className="text-3xl font-bold">주간 숙제</h2>
           <div className="text-base text-muted-foreground">
             {completedTasks}/{totalTasks} 완료
           </div>
+        </div>
+
+        {/* 초기화 시간 표시 */}
+        <div className="flex items-center mb-4 text-muted-foreground">
+          <Clock size={16} className="mr-1" />
+          <span className="text-sm">초기화까지 {timeUntilReset} 남음</span>
         </div>
 
         {/* 진행 상황 바 */}
