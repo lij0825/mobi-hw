@@ -1,10 +1,18 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import {
+  DAILY_CATEGORIES,
+  WEEKLY_CATEGORIES,
+  DEFAULT_DAILY_CATEGORY,
+  DEFAULT_WEEKLY_CATEGORY,
+} from "@/lib/constants";
 
 // 작업 유형 정의
 export interface Task {
   id: string;
   name: string;
+  category?: string;
+  icon?: string;
 }
 
 // 캐릭터 유형 정의
@@ -36,9 +44,9 @@ interface TasksState {
   checkAndResetTasks: () => void;
 
   // 작업 관리 함수
-  addDailyTask: (name: string) => void;
-  addWeeklyTask: (name: string) => void;
-  editDailyTask: (id: string, name: string) => void;
+  addDailyTask: (name: string, category?: string) => void;
+  addWeeklyTask: (name: string, category?: string) => void;
+  editDailyTask: (id: string, name: string, category?: string) => void;
   editWeeklyTask: (id: string, name: string) => void;
   deleteDailyTask: (id: string) => void;
   deleteWeeklyTask: (id: string) => void;
@@ -46,21 +54,29 @@ interface TasksState {
 
 // 기본 작업 목록
 const defaultDailyTasks: Task[] = [
-  { id: "black_hole", name: "검은 구멍 3회" },
-  { id: "barrier", name: "결계 2회" },
-  { id: "daily_dungeon", name: "요일 던전" },
-  { id: "part_time", name: "아르바이트" },
-  { id: "phantom_tower", name: "망령의 탑 5회" },
-  { id: "cash_shop", name: "캐쉬샵 (무료 물품, 데카 은화, 골드 보석함)" },
+  { id: "black_hole", name: "검은 구멍 3회", category: DAILY_CATEGORIES[0], icon: "dungeon" }, // "던전"
+  { id: "barrier", name: "결계 2회", category: DAILY_CATEGORIES[0], icon: "dungeon" }, // "던전"
+  { id: "daily_dungeon", name: "요일 던전", category: DAILY_CATEGORIES[0], icon: "dungeon" }, // "던전"
+  { id: "phantom_tower", name: "망령의 탑 5회", category: DAILY_CATEGORIES[0], icon: "dungeon" }, // "던전"
+  { id: "part_time", name: "아르바이트", category: DAILY_CATEGORIES[2], icon: "gold" }, // "일반"
+  { id: "cash_shop_free", name: "무료 물품", category: DAILY_CATEGORIES[1], icon: "shop" }, // "캐쉬 샵"
+  { id: "cash_shop_deca", name: "데카 은화", category: DAILY_CATEGORIES[1], icon: "shop" }, // "캐쉬 샵"
+  { id: "cash_shop_gold", name: "골드 보석함", category: DAILY_CATEGORIES[1], icon: "shop" }, // "캐쉬 샵"
+  { id: "daily_gold", name: "골드 획득", category: DAILY_CATEGORIES[3], icon: "misc" }, // "기타"
 ];
 
 const defaultWeeklyTasks: Task[] = [
-  { id: "glas_gibnen", name: "글라스 기브넨" },
-  { id: "weekly_boss", name: "주간 보스 (페리, 크라브바흐, 크라마)" },
-  { id: "cash_shop_weekly", name: "캐쉬샵 (데카 곡물)" },
-  { id: "demon_badge", name: "마족의 증표(별의 인장) 교환" },
-  { id: "food_material", name: "음식 재료 교환" },
-  { id: "abyss", name: "어비스" },
+  { id: "glas_gibnen", name: "글라스 기브넨", category: WEEKLY_CATEGORIES[0], icon: "dungeon" }, // "레이드"
+  { id: "abyss_ruins", name: "가라앉은 유적", category: WEEKLY_CATEGORIES[1], icon: "dungeon" }, // "어비스"
+  { id: "abyss_altar", name: "무너진 제단", category: WEEKLY_CATEGORIES[1], icon: "dungeon" }, // "어비스"
+  { id: "abyss_hall", name: "파멸의 전당", category: WEEKLY_CATEGORIES[1], icon: "dungeon" }, // "어비스"
+  { id: "weekly_boss_peri", name: "페리", category: WEEKLY_CATEGORIES[2], icon: "boss" }, // "주간 보스"
+  { id: "weekly_boss_krav", name: "크라브바흐", category: WEEKLY_CATEGORIES[2], icon: "boss" }, // "주간 보스"
+  { id: "weekly_boss_krama", name: "크라마", category: WEEKLY_CATEGORIES[2], icon: "boss" }, // "주간 보스"
+  { id: "cash_shop_weekly", name: "데카 곡물", category: WEEKLY_CATEGORIES[3], icon: "shop" }, // "캐쉬 샵"
+  { id: "demon_badge", name: "마족의 증표", category: WEEKLY_CATEGORIES[4], icon: "exchange" }, // "교환"
+  { id: "food_material", name: "음식 재료", category: WEEKLY_CATEGORIES[4], icon: "exchange" }, // "교환"
+  { id: "weekly_mission", name: "주간 미션", category: WEEKLY_CATEGORIES[5], icon: "misc" }, // "기타"
 ];
 
 // UUID 생성 함수
@@ -223,11 +239,16 @@ export const useTaskStore = create<TasksState>()(
       },
 
       // 작업 관리 함수
-      addDailyTask: (name: string) =>
+      addDailyTask: (name: string, category?: string) =>
         set((state) => {
           if (!state.selectedCharacterId) return state;
 
-          const newTask = { id: generateId(), name };
+          const newTask = {
+            id: generateId(),
+            name,
+            category: category || DEFAULT_DAILY_CATEGORY, // 기본 카테고리 사용
+          };
+
           return {
             characters: state.characters.map((char) =>
               char.id === state.selectedCharacterId
@@ -237,11 +258,16 @@ export const useTaskStore = create<TasksState>()(
           };
         }),
 
-      addWeeklyTask: (name: string) =>
+      addWeeklyTask: (name: string, category?: string) =>
         set((state) => {
           if (!state.selectedCharacterId) return state;
 
-          const newTask = { id: generateId(), name };
+          const newTask = {
+            id: generateId(),
+            name,
+            category: category || DEFAULT_WEEKLY_CATEGORY, // 기본 카테고리 사용
+          };
+
           return {
             characters: state.characters.map((char) =>
               char.id === state.selectedCharacterId
@@ -251,7 +277,7 @@ export const useTaskStore = create<TasksState>()(
           };
         }),
 
-      editDailyTask: (id: string, name: string) =>
+      editDailyTask: (id: string, name: string, category?: string) =>
         set((state) => {
           if (!state.selectedCharacterId) return state;
 
@@ -261,7 +287,7 @@ export const useTaskStore = create<TasksState>()(
                 ? {
                     ...char,
                     dailyTaskItems: char.dailyTaskItems.map((task) =>
-                      task.id === id ? { ...task, name } : task
+                      task.id === id ? { ...task, name, ...(category && { category }) } : task
                     ),
                   }
                 : char
