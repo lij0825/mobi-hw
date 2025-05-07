@@ -131,9 +131,13 @@ const WeeklyTaskList = () => {
                 />
                 <label
                   htmlFor={`weekly-${task.id}`}
-                  className={`text-xl ${
+                  className={`text-xl select-none ${
                     tasks[task.id] ? "line-through text-muted-foreground" : ""
                   }`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggleWeeklyTask(task.id);
+                  }}
                 >
                   {task.name}
                 </label>
