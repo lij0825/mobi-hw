@@ -53,7 +53,7 @@ const CharacterTabs = () => {
   // 캐릭터가 없는 경우 안내 메시지 표시
   if (characters.length === 0) {
     return (
-      <Card className="w-full">
+      <Card className="w-full border-none shadow-none">
         <CardContent className="flex flex-col items-center py-8">
           <UserCircle className="h-20 w-20 text-muted-foreground mb-4" />
           <Button
