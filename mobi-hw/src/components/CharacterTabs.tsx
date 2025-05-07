@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Pencil, Trash2 } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, UserCircle } from "lucide-react";
 import { useTaskStore } from "../store/taskStore";
 import {
   Dialog,
@@ -13,6 +13,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 const CharacterTabs = () => {
   const {
@@ -51,39 +53,53 @@ const CharacterTabs = () => {
   // 캐릭터가 없는 경우 안내 메시지 표시
   if (characters.length === 0) {
     return (
-      <div className="flex flex-col items-center p-4 border rounded-md">
-        <p className="mb-4 text-center">캐릭터를 추가해서 숙제를 관리해보세요!</p>
-        <Button onClick={() => setIsAddDialogOpen(true)} className="flex items-center gap-2">
-          <PlusCircle size={16} /> 캐릭터 추가
-        </Button>
+      <Card className="w-full">
+        <CardContent className="flex flex-col items-center py-8">
+          <UserCircle className="h-20 w-20 text-muted-foreground mb-4" />
+          <Button
+            onClick={() => setIsAddDialogOpen(true)}
+            className="flex items-center gap-2 text-lg"
+          >
+            <PlusCircle size={20} /> 캐릭터 추가
+          </Button>
 
-        {/* 캐릭터 추가 다이얼로그 */}
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>캐릭터 추가</DialogTitle>
-              <DialogDescription>새로운 캐릭터를 추가하여 숙제를 관리하세요.</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleAddCharacter}>
-              <div className="py-4">
-                <Input
-                  value={characterName}
-                  onChange={(e) => setCharacterName(e.target.value)}
-                  placeholder="캐릭터 이름"
-                  className="w-full"
-                  autoFocus
-                />
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  취소
-                </Button>
-                <Button type="submit">추가</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+          {/* 캐릭터 추가 다이얼로그 */}
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="text-2xl">캐릭터 추가</DialogTitle>
+                <DialogDescription className="text-lg">
+                  새로운 캐릭터를 추가하여 숙제를 관리하세요.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleAddCharacter}>
+                <div className="py-4">
+                  <Input
+                    value={characterName}
+                    onChange={(e) => setCharacterName(e.target.value)}
+                    placeholder="캐릭터 이름"
+                    className="w-full text-lg"
+                    autoFocus
+                  />
+                </div>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsAddDialogOpen(false)}
+                    className="text-lg"
+                  >
+                    취소
+                  </Button>
+                  <Button type="submit" className="text-lg">
+                    추가
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -102,33 +118,38 @@ const CharacterTabs = () => {
   };
 
   return (
-    <div className="w-full mb-6">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-lg font-bold">캐릭터</h2>
+    <div className="w-full mb-6 pt-4">
+      <div className="flex items-center justify-between mb-4 px-4">
+        <h2 className="text-2xl font-bold">캐릭터</h2>
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={() => {
             setCharacterName("");
             setIsAddDialogOpen(true);
           }}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 text-base"
         >
-          <PlusCircle size={16} /> 캐릭터 추가
+          <PlusCircle size={20} /> 캐릭터 추가
         </Button>
       </div>
 
-      <div className="flex overflow-x-auto pb-2">
+      <div className="px-2">
         <Tabs
           value={selectedCharacterId || undefined}
           onValueChange={selectCharacter}
           className="w-full"
         >
-          <TabsList className="flex">
+          <TabsList className="flex mb-2 overflow-x-auto justify-start w-full h-auto p-1 rounded-md">
             {characters.map((character) => (
-              <div key={character.id} className="flex items-center">
-                <TabsTrigger value={character.id} className="px-4">
-                  {character.name}
+              <div key={character.id} className="flex items-center mb-1">
+                <TabsTrigger value={character.id} className="px-4 py-2 text-lg">
+                  <div className="relative">
+                    {character.name}
+                    {selectedCharacterId === character.id && (
+                      <Badge className="absolute -top-2 -right-6 h-1 w-1 rounded-full p-0 bg-primary" />
+                    )}
+                  </div>
                 </TabsTrigger>
                 <div className="flex items-center ml-1 space-x-1">
                   <button
@@ -160,8 +181,10 @@ const CharacterTabs = () => {
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>캐릭터 추가</DialogTitle>
-            <DialogDescription>새로운 캐릭터를 추가하여 숙제를 관리하세요.</DialogDescription>
+            <DialogTitle className="text-2xl">캐릭터 추가</DialogTitle>
+            <DialogDescription className="text-lg">
+              새로운 캐릭터를 추가하여 숙제를 관리하세요.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddCharacter}>
             <div className="py-4">
@@ -169,15 +192,22 @@ const CharacterTabs = () => {
                 value={characterName}
                 onChange={(e) => setCharacterName(e.target.value)}
                 placeholder="캐릭터 이름"
-                className="w-full"
+                className="w-full text-lg"
                 autoFocus
               />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddDialogOpen(false)}
+                className="text-lg"
+              >
                 취소
               </Button>
-              <Button type="submit">추가</Button>
+              <Button type="submit" className="text-lg">
+                추가
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -187,7 +217,7 @@ const CharacterTabs = () => {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>캐릭터 수정</DialogTitle>
+            <DialogTitle className="text-2xl">캐릭터 수정</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleEditCharacter}>
             <div className="py-4">
@@ -195,15 +225,22 @@ const CharacterTabs = () => {
                 value={characterName}
                 onChange={(e) => setCharacterName(e.target.value)}
                 placeholder="캐릭터 이름"
-                className="w-full"
+                className="w-full text-lg"
                 autoFocus
               />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditDialogOpen(false)}
+                className="text-lg"
+              >
                 취소
               </Button>
-              <Button type="submit">수정</Button>
+              <Button type="submit" className="text-lg">
+                수정
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

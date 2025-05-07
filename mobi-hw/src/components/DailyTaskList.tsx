@@ -3,7 +3,8 @@ import type { FormEvent } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Pencil, Trash2 } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, AlertCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { useTaskStore } from "../store/taskStore";
 import type { Task } from "../store/taskStore";
 
@@ -34,11 +35,16 @@ const DailyTaskList = () => {
   // 캐릭터가 선택되지 않은 경우 안내 메시지 표시
   if (!selectedCharacterId) {
     return (
-      <div className="p-4 text-center">
-        <p>캐릭터를 추가하여 숙제를 관리해보세요!</p>
+      <div className="p-6 text-center">
+        <AlertCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+        <p className="text-xl">캐릭터를 추가하여 숙제를 관리해보세요!</p>
       </div>
     );
   }
+
+  const totalTasks = dailyTaskItems.length;
+  const completedTasks = dailyTaskItems.filter((task) => tasks[task.id]).length;
+  const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   // 작업 추가 핸들러
   const handleAddTask = (e: FormEvent) => {
@@ -89,83 +95,127 @@ const DailyTaskList = () => {
   };
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">일일 숙제</h2>
+    <Card className="border-0 shadow-none">
+      <CardContent className="p-4">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-3xl font-bold">일일 숙제</h2>
+          <div className="text-base text-muted-foreground">
+            {completedTasks}/{totalTasks} 완료
+          </div>
+        </div>
 
-      {/* 작업 목록 */}
-      <ul className="space-y-2 mb-4">
-        {dailyTaskItems.map((task) => (
-          <li key={task.id} className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={tasks[task.id] || false}
-                onCheckedChange={() => toggleDailyTask(task.id)}
-              />
-              <span className={tasks[task.id] ? "line-through text-gray-500" : ""}>
-                {task.name}
-              </span>
-            </div>
-            <div className="flex space-x-1">
-              <button onClick={() => startEditing(task)} className="p-1 hover:text-blue-500">
-                <Pencil size={16} />
-              </button>
-              <button onClick={() => handleDeleteTask(task.id)} className="p-1 hover:text-red-500">
-                <Trash2 size={16} />
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+        {/* 진행 상황 바 */}
+        <div className="w-full bg-gray-200 rounded-full h-3 mb-6 dark:bg-gray-700">
+          <div className="bg-primary h-3 rounded-full" style={{ width: `${progress}%` }} />
+        </div>
 
-      {/* 작업 추가 폼 */}
-      {isAdding && (
-        <form onSubmit={handleAddTask} className="flex items-center gap-2 mt-4">
-          <Input
-            value={newTaskName}
-            onChange={(e) => setNewTaskName(e.target.value)}
-            placeholder="새 작업 이름"
-            className="flex-1"
-            autoFocus
-          />
-          <Button type="submit" size="sm">
-            추가
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={cancelEditing}>
-            취소
-          </Button>
-        </form>
-      )}
+        {/* 작업 목록 */}
+        <ul className="space-y-3 mb-5">
+          {dailyTaskItems.map((task) => (
+            <li
+              key={task.id}
+              className="flex items-center justify-between p-4 rounded-md bg-card hover:bg-muted"
+            >
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id={`daily-${task.id}`}
+                  checked={tasks[task.id] || false}
+                  onCheckedChange={() => toggleDailyTask(task.id)}
+                  className="h-6 w-6"
+                />
+                <label
+                  htmlFor={`daily-${task.id}`}
+                  className={`text-xl cursor-pointer ${
+                    tasks[task.id] ? "line-through text-muted-foreground" : ""
+                  }`}
+                >
+                  {task.name}
+                </label>
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => startEditing(task)}
+                  className="h-10 w-10 p-0"
+                >
+                  <Pencil size={20} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteTask(task.id)}
+                  className="h-10 w-10 p-0 hover:text-destructive"
+                >
+                  <Trash2 size={20} />
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
 
-      {/* 작업 수정 폼 */}
-      {editingTask && (
-        <form onSubmit={handleEditTask} className="flex items-center gap-2 mt-4">
-          <Input
-            value={newTaskName}
-            onChange={(e) => setNewTaskName(e.target.value)}
-            placeholder="작업 이름 수정"
-            className="flex-1"
-            autoFocus
-          />
-          <Button type="submit" size="sm">
-            수정
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={cancelEditing}>
-            취소
-          </Button>
-        </form>
-      )}
+        {/* 작업 추가 폼 */}
+        {isAdding && (
+          <form onSubmit={handleAddTask} className="flex items-center gap-2 mt-6">
+            <Input
+              value={newTaskName}
+              onChange={(e) => setNewTaskName(e.target.value)}
+              placeholder="새 작업 이름"
+              className="flex-1 text-lg"
+              autoFocus
+            />
+            <Button type="submit" size="lg" className="text-lg">
+              추가
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={cancelEditing}
+              className="text-lg"
+            >
+              취소
+            </Button>
+          </form>
+        )}
 
-      {/* 추가 버튼 (추가/수정 중이 아닐 때만 표시) */}
-      {!isAdding && !editingTask && (
-        <Button
-          onClick={startAdding}
-          variant="outline"
-          className="w-full mt-4 flex items-center justify-center gap-2"
-        >
-          <PlusCircle size={18} /> 새 작업 추가
-        </Button>
-      )}
-    </div>
+        {/* 작업 수정 폼 */}
+        {editingTask && (
+          <form onSubmit={handleEditTask} className="flex items-center gap-2 mt-6">
+            <Input
+              value={newTaskName}
+              onChange={(e) => setNewTaskName(e.target.value)}
+              placeholder="작업 이름 수정"
+              className="flex-1 text-lg"
+              autoFocus
+            />
+            <Button type="submit" size="lg" className="text-lg">
+              수정
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={cancelEditing}
+              className="text-lg"
+            >
+              취소
+            </Button>
+          </form>
+        )}
+
+        {/* 추가 버튼 (추가/수정 중이 아닐 때만 표시) */}
+        {!isAdding && !editingTask && (
+          <Button
+            onClick={startAdding}
+            variant="outline"
+            className="w-full mt-4 flex items-center justify-center gap-2 text-lg py-6"
+          >
+            <PlusCircle size={24} /> 새 작업 추가
+          </Button>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
