@@ -14,18 +14,25 @@ const WeeklyTaskList = () => {
     characters,
     selectedCharacterId,
     toggleWeeklyTask,
-    incrementTaskCount, // 추가 필요
-    decrementTaskCount, // 추가 필요
+    incrementTaskCount,
+    decrementTaskCount,
     checkAndResetTasks,
     addWeeklyTask,
     editWeeklyTask,
     deleteWeeklyTask,
   } = useTaskStore();
 
-  const selectedCharacter = characters.find((c) => c.id === selectedCharacterId);
-  const weeklyTaskItems = selectedCharacter?.weeklyTaskItems || [];
-  const tasks = selectedCharacter?.weeklyTasks || {};
-  const taskCounts = selectedCharacter?.weeklyTaskCounts || {}; // 추가 필요
+  // selectedCharacter와 관련 데이터를 useMemo로 최적화
+  const selectedCharacterData = useMemo(() => {
+    const selectedCharacter = characters.find((c) => c.id === selectedCharacterId);
+    return {
+      weeklyTaskItems: selectedCharacter?.weeklyTaskItems || [],
+      tasks: selectedCharacter?.weeklyTasks || {},
+      taskCounts: selectedCharacter?.weeklyTaskCounts || {},
+    };
+  }, [characters, selectedCharacterId]);
+
+  const { weeklyTaskItems, tasks, taskCounts } = selectedCharacterData;
 
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -67,17 +74,19 @@ const WeeklyTaskList = () => {
       groups[category].push(task);
     });
 
-    // 초기 확장 상태 설정
-    if (Object.keys(expandedCategories).length === 0) {
+    return groups;
+  }, [weeklyTaskItems]);
+
+  // 초기 확장 상태 설정 - useEffect로 분리
+  useEffect(() => {
+    if (Object.keys(expandedCategories).length === 0 && Object.keys(groupedTasks).length > 0) {
       const initialState: Record<string, boolean> = {};
-      Object.keys(groups).forEach((category) => {
+      Object.keys(groupedTasks).forEach((category) => {
         initialState[category] = true;
       });
       setExpandedCategories(initialState);
     }
-
-    return groups;
-  }, [weeklyTaskItems, expandedCategories]);
+  }, [groupedTasks, expandedCategories]);
 
   // 카테고리 토글 처리
   const toggleCategory = (category: string) => {
@@ -97,6 +106,7 @@ const WeeklyTaskList = () => {
     );
   }
 
+  // 완료 작업 계산
   const totalTasks = weeklyTaskItems.length;
   const completedTasks = weeklyTaskItems.filter((task) => {
     // 카운트가 있는 작업은 현재 카운트가 최대 카운트 이상일 때 완료로 처리
@@ -167,13 +177,13 @@ const WeeklyTaskList = () => {
             expanded={expandedCategories[category] || false}
             onToggle={() => toggleCategory(category)}
             onTaskToggle={toggleWeeklyTask}
-            onTaskIncrement={(id) => incrementTaskCount(id, true)} // 추가 필요
-            onTaskDecrement={(id) => decrementTaskCount(id, true)} // 추가 필요
+            onTaskIncrement={(id) => incrementTaskCount(id, true)}
+            onTaskDecrement={(id) => decrementTaskCount(id, true)}
             onTaskEdit={startEditing}
             onTaskDelete={handleDeleteTask}
             tasksStatus={tasks}
-            taskCounts={taskCounts} // 추가 필요
-            isWeekly={true} // 추가 필요
+            taskCounts={taskCounts}
+            isWeekly={true}
           />
         ))}
 
