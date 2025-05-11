@@ -269,14 +269,35 @@ export const useTaskStore = create<TasksState>()(
           });
         }
 
-        // 주간 초기화 로직 (매주 월요일 새벽 6시)
+        // 주간 초기화 로직 개선 (매주 월요일 새벽 6시)
         const lastWeeklyReset = localStorage.getItem("weeklyTasksResetTime");
-        const weeklyResetTime = new Date();
-        weeklyResetTime.setDate(weeklyResetTime.getDate() - weeklyResetTime.getDay() + 1); // 이번주 월요일
-        weeklyResetTime.setHours(6, 0, 0, 0); // 월요일 새벽 6시
+        const currentDay = now.getDay(); // 0: 일요일, 1: 월요일, ...
 
-        if (!lastWeeklyReset || new Date(lastWeeklyReset) < weeklyResetTime) {
+        // 이번 주 월요일 계산
+        const thisMonday = new Date(now);
+        thisMonday.setDate(now.getDate() - currentDay + (currentDay === 0 ? -6 : 1));
+        thisMonday.setHours(6, 0, 0, 0);
+
+        // 지난 주 월요일 계산
+        const lastMonday = new Date(thisMonday);
+        lastMonday.setDate(lastMonday.getDate() - 7);
+
+        // 다음 주 월요일 계산
+        const nextMonday = new Date(thisMonday);
+        nextMonday.setDate(nextMonday.getDate() + 7);
+
+        // 현재 기준 적용되어야 할 초기화 날짜 결정
+        let applicableResetTime = thisMonday;
+
+        // 만약 현재 시간이 이번 주 월요일 오전 6시보다 이전이면, 지난 주 월요일 기준으로 초기화
+        if (now < thisMonday) {
+          applicableResetTime = lastMonday;
+        }
+
+        // 이전 초기화 기록이 없거나, 적용 초기화 시간보다 이전인 경우 초기화 실행
+        if (!lastWeeklyReset || new Date(lastWeeklyReset) < applicableResetTime) {
           localStorage.setItem("weeklyTasksResetTime", now.toISOString());
+
           // 모든 캐릭터의 주간 숙제 초기화
           characters.forEach((char) => {
             get().resetWeeklyTasks(char.id);
@@ -546,3 +567,32 @@ export const useTaskStore = create<TasksState>()(
     }
   )
 );
+
+export function calculateWeeklyResetTime(): { timeString: string; nextReset: Date } {
+  const now = new Date();
+
+  // 다음 월요일 계산
+  const nextReset = new Date(now);
+  const currentDay = now.getDay(); // 0: 일요일, 1: 월요일, ...
+
+  // 월요일 6시 설정
+  if (currentDay === 1 && now.getHours() < 6) {
+    // 오늘이 월요일인데 6시 이전이면 오늘 6시
+    nextReset.setHours(6, 0, 0, 0);
+  } else {
+    // 아니면 다음 주 월요일
+    const daysUntilNextMonday = currentDay === 0 ? 1 : 8 - currentDay;
+    nextReset.setDate(now.getDate() + daysUntilNextMonday);
+    nextReset.setHours(6, 0, 0, 0);
+  }
+
+  const diff = nextReset.getTime() - now.getTime();
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+  const timeString = `${days}일 ${hours}시간 ${minutes}분 ${seconds}초`;
+
+  return { timeString, nextReset };
+}
